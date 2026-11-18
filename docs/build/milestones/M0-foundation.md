@@ -16,7 +16,8 @@
 - Done: repo created, starter files merged (PR #1: CLAUDE.md, .gitignore, folder layout, docs/README.md).
 - Done: step 4, local tools installed and recorded in CLAUDE.md; Azure subscription exists and az is signed in; GitHub CLI installed. Docker skipped (images build in CI).
 - Done: open decisions settled and logged with a cost estimate (Service Bus Basic, public repo with fresh history, no Functions; AI Search vector test moved to M3).
-- Next: the board and issues, Terraform, CI/CD with OIDC, Entra, OpenTelemetry, budget alert, and the CLAUDE.md commands.
+- Done: acceptance criteria for all 45 scenarios in `docs/acceptance-criteria.md`; labels (UC IDs, Must, Should, Could), milestones M0 to M8 and 45 issues created by `scripts/github/create-issues.ps1`; branch protection on main (PRs only, linear history, no force-push).
+- Next: the Projects board, the board and issues, Terraform, CI/CD with OIDC, Entra, OpenTelemetry, budget alert, and the CLAUDE.md commands.
 
 ## Decisions needed first
 
