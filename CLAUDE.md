@@ -33,3 +33,6 @@ Installed with winget on Windows (versions as of 2026-11-17): git 2.56.0, .NET S
 ## Commands
 
 Filled in as each part is created (build, test, run, deploy).
+
+- Scenario issues: `./scripts/github/create-issues.ps1 -Repo ssanchez227/doc-intelligence-platform` creates labels, milestones and one issue per section of `docs/acceptance-criteria.md`. Safe to re-run; add `-WhatIf` for a dry run.
+- main is protected: every change goes through a pull request, merged by squash or rebase (linear history).
