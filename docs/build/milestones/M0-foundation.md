@@ -18,7 +18,8 @@
 - Done: open decisions settled and logged with a cost estimate (Service Bus Basic, public repo with fresh history, no Functions; AI Search vector test moved to M3).
 - Done: acceptance criteria for all 45 scenarios in `docs/acceptance-criteria.md`; labels (UC IDs, Must, Should, Could), milestones M0 to M8 and 45 issues created by `scripts/github/create-issues.ps1`; branch protection on main (PRs only, linear history, no force-push); public Projects board "Document Intelligence Platform" (https://github.com/users/ssanchez227/projects/2) linked to the repo, holding all 45 issues.
 - Done: Terraform written and validated, not yet applied: `infra/bootstrap` (state storage), `infra/modules/platform` (all M0 resources including the budget alert) and `infra/envs/dev`, `infra/envs/demo`. Run order in `infra/README.md`.
-- Next: apply the bootstrap and dev, test the budget alert, then CI/CD with OIDC, Entra, OpenTelemetry.
+- Done: bootstrap and dev applied in Central US (SQL is barred in East US 2 for this subscription); web and API placeholders answer; a fresh plan shows no changes.
+- Next: test the budget alert, then CI/CD with OIDC, Entra, OpenTelemetry.
 
 ## Decisions needed first
 

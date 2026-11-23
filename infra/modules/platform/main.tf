@@ -218,7 +218,7 @@ resource "azapi_resource" "sql_database" {
 
   body = {
     sku = {
-      name     = "GP_S_Gen5_2"
+      name     = "GP_S_Gen5"
       tier     = "GeneralPurpose"
       family   = "Gen5"
       capacity = 2
@@ -243,8 +243,15 @@ resource "azurerm_container_app_environment" "main" {
   name                       = "cae-${local.name}"
   resource_group_name        = azurerm_resource_group.main.name
   location                   = azurerm_resource_group.main.location
+  logs_destination           = "log-analytics"
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
   tags                       = local.tags
+
+  # Azure adds this profile to every new environment; declaring it avoids a diff on each plan.
+  workload_profile {
+    name                  = "Consumption"
+    workload_profile_type = "Consumption"
+  }
 }
 
 locals {
@@ -261,6 +268,7 @@ resource "azurerm_container_app" "app" {
   resource_group_name          = azurerm_resource_group.main.name
   container_app_environment_id = azurerm_container_app_environment.main.id
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption"
   tags                         = merge(local.tags, { app = each.key })
 
   identity {

@@ -50,7 +50,7 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 **Terraform layout (2026-11-22)**
 - State lives in its own storage account, created once by `infra/bootstrap` (local state, gitignored). Entra auth only, no shared keys, blob versioning and 30-day soft delete.
 - One module, `infra/modules/platform`; `envs/dev` and `envs/demo` differ only in state key and environment name.
-- Region East US 2 for everything.
+- Region Central US for every environment (changed from East US 2 on 2026-11-22): this subscription may not create Azure SQL servers in East US 2, East US, West US 2 or North Central US; Central US, West US 3 and Canada Central are open. Everything moved, not SQL alone, to keep one region. The state storage from the bootstrap stays in East US 2. Check Azure OpenAI model availability in Central US before M4.
 - One user-assigned identity per app (web, API, worker), each with only its own roles: AcrPull for all; Blob and Key Vault access for API and worker; Service Bus send for API, receive for worker.
 - Azure SQL uses Entra-only authentication and the free offer, created with azapi because azurerm lacks the free-offer settings; it auto-pauses when the free amount runs out. Public access with the Azure-services firewall rule until M8 hardening.
 - Log Analytics capped at 0.15 GB a day to stay under the free 5 GB a month.
@@ -75,3 +75,4 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 - 2026-11-17: M0 decisions logged (queue, public repo, Functions, Docker, AI Search test timing) with a cost estimate. Personal positioning notes removed from this log and the other docs before the repo went public; the queue, public repo and free-tier questions closed; two new open questions added.
 - 2026-11-22: Terraform layout decisions logged; Container Registry tier added as an open question.
 - 2026-11-22: Container Registry tier settled as Basic; open question closed.
+- 2026-11-22: region changed to Central US after SQL provisioning was refused in East US 2; bootstrap and dev applied.

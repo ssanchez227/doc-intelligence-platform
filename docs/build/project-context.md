@@ -22,7 +22,7 @@ A permission-aware document intelligence platform on Azure: classic document man
 
 ## Current status
 
-M0 Foundation, in progress. Done: repo, starter files (CLAUDE.md, .gitignore, folder layout), handoff docs, local tools (versions in CLAUDE.md; Azure subscription exists), open decisions (see the decision log), GitHub Projects board with one issue per scenario, Terraform written and validated (not yet applied; see `infra/README.md`). Next: apply bootstrap and dev, test the budget alert, CI/CD with OIDC, Entra, OpenTelemetry.
+M0 Foundation, in progress. Done: repo, starter files (CLAUDE.md, .gitignore, folder layout), handoff docs, local tools (versions in CLAUDE.md; Azure subscription exists), open decisions (see the decision log), GitHub Projects board with one issue per scenario, Terraform applied for the bootstrap and dev in Central US (see `infra/README.md`). Next: test the budget alert, CI/CD with OIDC, Entra, OpenTelemetry.
 
 ## Open decisions
 
