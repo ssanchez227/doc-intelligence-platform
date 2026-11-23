@@ -18,6 +18,8 @@ dist/
 *.tfstate.*
 *.tfvars
 !*.tfvars.example
+backend.hcl
+*.tfplan
 crash.log
 
 # OS and editors
