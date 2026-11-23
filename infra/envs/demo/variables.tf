@@ -1,6 +1,6 @@
 variable "location" {
   type    = string
-  default = "eastus2"
+  default = "centralus"
 }
 
 variable "sql_admin_group" {

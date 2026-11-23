@@ -34,6 +34,15 @@ terraform apply dev.tfplan
 
 The role assignment on the state account can take a minute or two to take effect, so the first `init` may fail with 403. Wait and retry.
 
+Set `ARM_SUBSCRIPTION_ID` first (`export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)`); azurerm 5 needs it.
+
+## Troubleshooting
+
+- `MissingSubscriptionRegistration` for a namespace (seen for `microsoft.insights` on the first apply): register it with `az provider register -n Microsoft.Insights --wait` and re-apply.
+- `ProvisioningDisabled` for SQL: the subscription is barred from that region. List open regions with the `Microsoft.Sql/locations/<region>/capabilities` API (`status` is `Available`).
+- 404 or "Root object was present, but now absent" right after creating something, especially in a resource group deleted and recreated minutes earlier: Azure reads lag behind writes. The resource usually exists; import it (`terraform import`) and plan again. If a plan says a resource "has been deleted", check with `az` before applying, and re-plan.
+- In Git Bash, set `MSYS_NO_PATHCONV=1` before `terraform import`, or the `/subscriptions/...` ID is rewritten as a Windows path.
+
 ## Notes
 
 - No shared keys anywhere: storage and Service Bus use Entra auth only; SQL uses Entra-only authentication. Apps reach services through their user-assigned identities (`AZURE_CLIENT_ID` is set in each container).
