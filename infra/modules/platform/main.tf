@@ -58,14 +58,14 @@ resource "azurerm_user_assigned_identity" "app" {
 }
 
 # ---------------------------------------------------------------------------
-# Container registry (Standard: covered by the 12-month free offer).
+# Container registry (Basic: see the cost estimate in the decision log).
 # ---------------------------------------------------------------------------
 
 resource "azurerm_container_registry" "main" {
   name                = "cr${local.flat}"
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
-  sku                 = "Standard"
+  sku                 = "Basic"
   admin_enabled       = false
   tags                = local.tags
 }

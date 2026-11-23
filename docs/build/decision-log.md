@@ -55,6 +55,7 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 - Azure SQL uses Entra-only authentication and the free offer, created with azapi because azurerm lacks the free-offer settings; it auto-pauses when the free amount runs out. Public access with the Azure-services firewall rule until M8 hardening.
 - Log Analytics capped at 0.15 GB a day to stay under the free 5 GB a month.
 - Budget per environment resource group: $10 a month, alerts at 50, 80 and 100% actual and 100% forecast. Contact emails come from gitignored tfvars.
+- Container Registry is Basic, matching the cost table (about $5 a month once any free offer ends; Standard would be about $20). Chosen 2026-11-22 over Standard.
 - Container Apps start on a placeholder image; CI owns the image, so Terraform ignores image changes.
 
 ## Open
@@ -65,7 +66,6 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 | Edit lock (UC-02) or optimistic concurrency | M1 | The plan doc's versioning lean says optimistic concurrency instead of locks, but UC-02 requires an exclusive edit lock |
 | Free Trial end date | Before the trial ends | Check it in the portal and upgrade to pay-as-you-go before then |
 | UC-46 details: who approves, does the copy expire, can the recipient be outside the system | M7 | Assumed: owner or designated approver, no stated expiry, undecided |
-| Container Registry tier: Basic (cost table) or Standard (current Terraform) | Before the first apply | Terraform says Standard is the tier the 12-month free offer covers; the cost table assumes Basic. Check the free-account terms and align both |
 | Restart point of a send-back when several reviewers have already approved | M5 | Current answer: continue at the reviewer who sent it back |
 
 ## Changelog
@@ -74,3 +74,4 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 - 2026-11-17: moved into the repo under `docs/build/`; the repo is now the working copy. The Doc Mgt Project pages are a read-only mirror.
 - 2026-11-17: M0 decisions logged (queue, public repo, Functions, Docker, AI Search test timing) with a cost estimate. Personal positioning notes removed from this log and the other docs before the repo went public; the queue, public repo and free-tier questions closed; two new open questions added.
 - 2026-11-22: Terraform layout decisions logged; Container Registry tier added as an open question.
+- 2026-11-22: Container Registry tier settled as Basic; open question closed.
