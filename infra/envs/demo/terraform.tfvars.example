@@ -1,0 +1,10 @@
+# Copy to terraform.tfvars (gitignored) and fill in. Never commit the real file.
+
+sql_admin_group = {
+  login     = "you@example.com"                      # your Entra sign-in name, or a group name
+  object_id = "00000000-0000-0000-0000-000000000000" # az ad signed-in-user show --query id -o tsv
+}
+
+budget_amount         = 10
+budget_start_date     = "2026-11-01T00:00:00Z"
+budget_contact_emails = ["you@example.com"]
