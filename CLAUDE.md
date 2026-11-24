@@ -34,6 +34,9 @@ Installed with winget on Windows (versions as of 2026-11-17): git 2.56.0, .NET S
 
 Filled in as each part is created (build, test, run, deploy).
 
+- .NET (API and worker, solution `DocIntel.slnx`, .NET 10 LTS): `dotnet build DocIntel.slnx`, `dotnet test DocIntel.slnx`. Run the API with `dotnet run --project src/api/DocIntel.Api`. ASP.NET packages stay on 10.0.x; the newest ones target .NET 11.
+- Web (`src/web`, Vite, React, TypeScript, TanStack Query): `npm ci`, `npm test` (Vitest), `npm run build`, `npm run lint` (oxlint), `npm run dev`.
+- Container images: `src/api/Dockerfile`, `src/worker/Dockerfile`, `src/web/Dockerfile`, each built with its own folder as the context. All listen on 8080 (worker has no port) and run as non-root. Docker is not installed locally, so CI builds them.
 - Scenario issues: `./scripts/github/create-issues.ps1 -Repo ssanchez227/doc-intelligence-platform` creates labels, milestones and one issue per section of `docs/acceptance-criteria.md`. Safe to re-run; add `-WhatIf` for a dry run.
 - Terraform: see `infra/README.md`. Bootstrap state once (`infra/bootstrap`, `terraform apply`), then per environment `terraform init -backend-config=backend.hcl` and `terraform plan` / `apply` in `infra/envs/dev` or `infra/envs/demo`. Check with `terraform fmt -recursive -check` in `infra/` and `terraform validate` in each root.
 - main is protected: every change goes through a pull request, merged by squash or rebase (linear history).
