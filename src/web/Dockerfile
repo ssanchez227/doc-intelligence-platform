@@ -4,9 +4,16 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-# The API's URL is baked in at build time; CI passes the dev or demo URL.
+# Vite bakes these in at build time; CI passes the values for dev or demo.
+# Each must be declared here, or Docker drops the --build-arg silently.
 ARG VITE_API_BASE_URL=""
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ARG VITE_ENTRA_TENANT_ID=""
+ARG VITE_ENTRA_CLIENT_ID=""
+ARG VITE_API_SCOPE=""
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_ENTRA_TENANT_ID=$VITE_ENTRA_TENANT_ID \
+    VITE_ENTRA_CLIENT_ID=$VITE_ENTRA_CLIENT_ID \
+    VITE_API_SCOPE=$VITE_API_SCOPE
 RUN npm run build
 
 # Unprivileged nginx: runs as non-root and listens on 8080.
