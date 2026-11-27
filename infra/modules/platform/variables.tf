@@ -58,7 +58,7 @@ variable "placeholder_image" {
 }
 
 variable "github_repository" {
-  description = "owner/name of the GitHub repository whose workflows may deploy here."
+  description = "Repository part of the GitHub OIDC subject claim, in the immutable form owner@owner_id/name@repo_id (from the repo's actions/oidc/customization/sub API)."
   type        = string
 }
 

@@ -27,7 +27,7 @@ variable "budget_contact_emails" {
 
 variable "github_repository" {
   type    = string
-  default = "ssanchez227/doc-intelligence-platform"
+  default = "ssanchez227@30909494/doc-intelligence-platform@1462134496"
 }
 
 variable "entra_tenant_id" {

@@ -77,6 +77,7 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 - After deploying, the workflow checks that each app's latest revision is ready on the new tag, `/health` answers, the web page loads, and `/api/me` refuses a call without a token (401).
 - Terraform stays a manual step (`terraform apply` from a workstation) for now: giving CI rights to change infrastructure would need a much broader identity. Revisit before M8.
 - App settings come from Terraform: the API gets the Entra tenant and audience, the CORS origin and the Service Bus namespace; the worker gets the namespace and queue. The worker scales on queue length (KEDA `azure-servicebus` rule using the worker's identity), since it has no ingress to wake it.
+- The federated credential matches GitHub's immutable subject claim, `repo:<owner>@<owner id>/<repo>@<repo id>:environment:<env>` (superseding the `repo:<owner>/<repo>` form above, which the first deploy was refused with). This repository uses immutable subjects (`actions/oidc/customization/sub`), and the IDs mean a renamed or re-created repository with the same name cannot inherit the trust.
 
 ## Open
 
@@ -98,3 +99,4 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 - 2026-11-22: region changed to Central US after SQL provisioning was refused in East US 2; bootstrap and dev applied.
 - 2026-11-24: Entra sign-in decisions logged (`infra/identity`, shared app registrations, groups in tokens, test users).
 - 2026-11-27: CI/CD decisions logged (one workflow, OIDC deploy identity per environment, manual Terraform).
+- 2026-11-27: OIDC subject switched to GitHub's immutable form after the first deploy's sign-in was refused.

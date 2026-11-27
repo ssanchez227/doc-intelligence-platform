@@ -119,11 +119,21 @@ jobs:
 
       - name: Check the new revisions
         run: |
+          # A new revision takes a while to become ready; wait up to 3 minutes per app.
           for app in api worker web; do
-            state=$(az containerapp show --name "ca-dip-dev-$app" --resource-group "${{ vars.RESOURCE_GROUP }}" \
-              --query "{image: properties.template.containers[0].image, ready: properties.latestReadyRevisionName, latest: properties.latestRevisionName}" -o json)
-            echo "$app: $state"
-            echo "$state" | jq -e --arg tag "$TAG" '(.image | endswith($tag)) and .ready == .latest' > /dev/null
+            for attempt in $(seq 1 18); do
+              state=$(az containerapp show --name "ca-dip-dev-$app" --resource-group "${{ vars.RESOURCE_GROUP }}" \
+                --query "{image: properties.template.containers[0].image, ready: properties.latestReadyRevisionName, latest: properties.latestRevisionName}" -o json)
+              if echo "$state" | jq -e --arg tag "$TAG" '(.image | endswith($tag)) and .ready == .latest' > /dev/null; then
+                echo "$app ready: $state"
+                break
+              fi
+              if [ "$attempt" = 18 ]; then
+                echo "::error::$app did not become ready on $TAG: $state"
+                exit 1
+              fi
+              sleep 10
+            done
           done
           # Scale-to-zero apps take a cold start on the first request.
           curl --fail --silent --show-error --retry 10 --retry-delay 6 --retry-all-errors "${{ vars.API_URL }}/health"
