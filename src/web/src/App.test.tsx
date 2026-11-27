@@ -69,7 +69,9 @@ describe('App', () => {
     renderApp()
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    expect(msal.instance.loginRedirect).toHaveBeenCalledOnce()
+    expect(msal.instance.loginRedirect).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ prompt: 'select_account' }),
+    )
   })
 
   it('calls the protected endpoint with the access token and shows the user', async () => {

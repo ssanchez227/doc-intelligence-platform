@@ -28,7 +28,12 @@ export default function App() {
           </button>
         </>
       ) : (
-        <button type="button" onClick={() => instance.loginRedirect({ scopes: apiScopes })}>
+        // select_account: always offer the account picker, so a different test
+        // user can sign in even while Entra still has a session for another one.
+        <button
+          type="button"
+          onClick={() => instance.loginRedirect({ scopes: apiScopes, prompt: 'select_account' })}
+        >
           Sign in
         </button>
       )}
