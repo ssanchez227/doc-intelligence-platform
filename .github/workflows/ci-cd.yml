@@ -139,6 +139,10 @@ jobs:
           curl --fail --silent --show-error --retry 10 --retry-delay 6 --retry-all-errors "${{ vars.API_URL }}/health"
           echo
           curl --fail --silent --show-error --retry 10 --retry-delay 6 --retry-all-errors -o /dev/null "${{ vars.WEB_URL }}"
+          # The sign-in settings are baked into the bundle at build time; make sure they arrived.
+          bundle=$(curl --fail --silent --show-error "${{ vars.WEB_URL }}" | grep -o '/assets/index-[^"]*\.js' | head -1)
+          curl --fail --silent --show-error "${{ vars.WEB_URL }}$bundle" | grep -q "${{ vars.ENTRA_WEB_CLIENT_ID }}" \
+            || { echo "::error::The web bundle does not contain the Entra web client ID"; exit 1; }
           status=$(curl --silent -o /dev/null -w '%{http_code}' "${{ vars.API_URL }}/api/me")
           echo "/api/me without a token: $status"
           test "$status" = 401
