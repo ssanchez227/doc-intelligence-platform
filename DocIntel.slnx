@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/api/">
+    <Project Path="src/api/DocIntel.Api.Tests/DocIntel.Api.Tests.csproj" />
+    <Project Path="src/api/DocIntel.Api/DocIntel.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/worker/">
+    <Project Path="src/worker/DocIntel.Worker.Tests/DocIntel.Worker.Tests.csproj" />
+    <Project Path="src/worker/DocIntel.Worker/DocIntel.Worker.csproj" />
+  </Folder>
+</Solution>

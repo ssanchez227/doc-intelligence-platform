@@ -19,7 +19,10 @@
 - Done: acceptance criteria for all 45 scenarios in `docs/acceptance-criteria.md`; labels (UC IDs, Must, Should, Could), milestones M0 to M8 and 45 issues created by `scripts/github/create-issues.ps1`; branch protection on main (PRs only, linear history, no force-push); public Projects board "Document Intelligence Platform" (https://github.com/users/ssanchez227/projects/2) linked to the repo, holding all 45 issues.
 - Done: Terraform written and validated, not yet applied: `infra/bootstrap` (state storage), `infra/modules/platform` (all M0 resources including the budget alert) and `infra/envs/dev`, `infra/envs/demo`. Run order in `infra/README.md`.
 - Done: bootstrap and dev applied in Central US (SQL is barred in East US 2 for this subscription); web and API placeholders answer; a fresh plan shows no changes.
-- Next: test the budget alert, then CI/CD with OIDC, Entra, OpenTelemetry.
+- In progress: budget alert test. On 2026-11-24 the dev budget was applied at $1 (`terraform apply -var budget_amount=1`) with $0.22 spent, so the 50% alert fires when spend passes $0.50 (about two to three days at the current rate). Azure's minimum budget is $1. When the email arrives, run a plain `terraform apply` in `infra/envs/dev` to restore $10 from `terraform.tfvars`.
+- Done: app skeletons (step 5). .NET 10 API with anonymous `/health` and Entra-protected `/api/me`; .NET 10 worker reading the `ingestion` queue with its managed identity (bad messages retry, then dead-letter); Vite React TypeScript app showing the API status through TanStack Query; OpenTelemetry to Application Insights in the API and worker; Dockerfiles for all three. 8 .NET tests and 2 Vitest tests pass.
+- Needed in Terraform before images deploy (step 7): container `target_port` 80 to 8080; a Service Bus scale rule for the worker (it has no ingress and scales to zero, so it never starts otherwise); env vars `ServiceBus__FullyQualifiedNamespace` for the worker and `Auth__TenantId`, `Auth__Audience` for the API (after step 6).
+- Next: Entra app registrations and sign-in (step 6), then CI/CD with OIDC (step 7).
 
 ## Decisions needed first
 
