@@ -8,3 +8,7 @@ sql_admin_group = {
 budget_amount         = 10
 budget_start_date     = "2026-11-01T00:00:00Z"
 budget_contact_emails = ["you@example.com"]
+
+# From infra/identity: terraform output tenant_id / api_client_id
+entra_tenant_id = "00000000-0000-0000-0000-000000000000"
+api_audience    = "00000000-0000-0000-0000-000000000000"

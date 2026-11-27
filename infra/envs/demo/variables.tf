@@ -24,3 +24,18 @@ variable "budget_contact_emails" {
   type      = list(string)
   sensitive = true
 }
+
+variable "github_repository" {
+  type    = string
+  default = "ssanchez227/doc-intelligence-platform"
+}
+
+variable "entra_tenant_id" {
+  description = "infra/identity output tenant_id."
+  type        = string
+}
+
+variable "api_audience" {
+  description = "infra/identity output api_client_id."
+  type        = string
+}

@@ -56,4 +56,7 @@ module "platform" {
   budget_amount         = var.budget_amount
   budget_start_date     = var.budget_start_date
   budget_contact_emails = var.budget_contact_emails
+  github_repository     = var.github_repository
+  entra_tenant_id       = var.entra_tenant_id
+  api_audience          = var.api_audience
 }

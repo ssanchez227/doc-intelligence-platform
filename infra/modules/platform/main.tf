@@ -255,10 +255,31 @@ resource "azurerm_container_app_environment" "main" {
 }
 
 locals {
+  # All images listen on 8080 and run as non-root.
   apps = {
-    web    = { ingress = true, port = 80 }
-    api    = { ingress = true, port = 80 }
+    web    = { ingress = true, port = 8080 }
+    api    = { ingress = true, port = 8080 }
     worker = { ingress = false, port = 0 }
+  }
+
+  # Built from the environment's domain: the apps cannot refer to each other's
+  # ingress without a dependency cycle.
+  web_url         = "https://ca-${local.name}-web.${azurerm_container_app_environment.main.default_domain}"
+  servicebus_fqdn = "${azurerm_servicebus_namespace.main.name}.servicebus.windows.net"
+
+  # Settings per app, on top of the Application Insights and identity ones every app gets.
+  app_settings = {
+    web = {}
+    api = {
+      Auth__TenantId                      = var.entra_tenant_id
+      Auth__Audience                      = var.api_audience
+      Cors__AllowedOrigins__0             = local.web_url
+      ServiceBus__FullyQualifiedNamespace = local.servicebus_fqdn
+    }
+    worker = {
+      ServiceBus__FullyQualifiedNamespace = local.servicebus_fqdn
+      ServiceBus__QueueName               = azurerm_servicebus_queue.ingestion.name
+    }
   }
 }
 
@@ -312,6 +333,30 @@ resource "azurerm_container_app" "app" {
         name  = "AZURE_CLIENT_ID"
         value = azurerm_user_assigned_identity.app[each.key].client_id
       }
+
+      dynamic "env" {
+        for_each = local.app_settings[each.key]
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+    }
+
+    # The worker has no ingress, so only queue length can wake it from zero.
+    # KEDA reads the queue with the worker's identity (it has the Receiver role).
+    dynamic "custom_scale_rule" {
+      for_each = each.key == "worker" ? [1] : []
+      content {
+        name             = "ingestion-queue"
+        custom_rule_type = "azure-servicebus"
+        identity_id      = azurerm_user_assigned_identity.app["worker"].id
+        metadata = {
+          namespace    = azurerm_servicebus_namespace.main.name
+          queueName    = azurerm_servicebus_queue.ingestion.name
+          messageCount = "5"
+        }
+      }
     }
   }
 
@@ -320,6 +365,46 @@ resource "azurerm_container_app" "app" {
   }
 
   depends_on = [azurerm_role_assignment.acr_pull]
+}
+
+# ---------------------------------------------------------------------------
+# Deployment from GitHub Actions: OIDC federation, no stored secrets. The
+# identity trusts only workflow jobs that run in this environment's GitHub
+# environment, and may only push images and update the three apps.
+# ---------------------------------------------------------------------------
+
+resource "azurerm_user_assigned_identity" "deploy" {
+  name                = "id-${local.name}-deploy"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  tags                = local.tags
+}
+
+resource "azurerm_federated_identity_credential" "github" {
+  name                      = "github-${var.environment}"
+  user_assigned_identity_id = azurerm_user_assigned_identity.deploy.id
+  audience                  = ["api://AzureADTokenExchange"]
+  issuer                    = "https://token.actions.githubusercontent.com"
+  subject                   = "repo:${var.github_repository}:environment:${var.environment}"
+}
+
+resource "azurerm_role_assignment" "deploy_acr_push" {
+  scope                = azurerm_container_registry.main.id
+  role_definition_name = "AcrPush"
+  principal_id         = azurerm_user_assigned_identity.deploy.principal_id
+}
+
+resource "azurerm_role_assignment" "deploy_apps" {
+  for_each             = azurerm_container_app.app
+  scope                = each.value.id
+  role_definition_name = "Container Apps Contributor"
+  principal_id         = azurerm_user_assigned_identity.deploy.principal_id
+}
+
+resource "azurerm_role_assignment" "deploy_environment_reader" {
+  scope                = azurerm_container_app_environment.main.id
+  role_definition_name = "Container Apps ManagedEnvironments Reader"
+  principal_id         = azurerm_user_assigned_identity.deploy.principal_id
 }
 
 # ---------------------------------------------------------------------------
