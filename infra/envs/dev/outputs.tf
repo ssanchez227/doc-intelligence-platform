@@ -9,5 +9,6 @@ output "platform" {
     storage_blob_endpoint           = module.platform.storage_blob_endpoint
     servicebus_fqdn                 = module.platform.servicebus_fqdn
     key_vault_uri                   = module.platform.key_vault_uri
+    deploy                          = module.platform.deploy
   }
 }

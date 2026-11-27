@@ -1,0 +1,134 @@
+name: CI/CD
+
+# Every pull request and push to main is built and tested. A push to main (or a
+# manual run on main) then builds the three images, pushes them to the dev
+# registry and deploys them to the dev container apps.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  dotnet:
+    name: .NET build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet build DocIntel.slnx -c Release
+      - run: dotnet test DocIntel.slnx -c Release --no-build
+
+  web:
+    name: Web lint, test and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  terraform:
+    name: Terraform format and validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.17.1
+      - run: terraform fmt -recursive -check
+        working-directory: infra
+      - name: Validate each root
+        run: |
+          for root in bootstrap identity envs/dev envs/demo; do
+            echo "::group::$root"
+            terraform -chdir="infra/$root" init -backend=false -input=false
+            terraform -chdir="infra/$root" validate
+            echo "::endgroup::"
+          done
+
+  deploy-dev:
+    name: Deploy to dev
+    needs: [dotnet, web, terraform]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # The Azure identity trusts only jobs in this GitHub environment, which only
+    # main may deploy to. Its variables are IDs and URLs, not secrets.
+    environment:
+      name: dev
+      url: ${{ vars.WEB_URL }}
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+    env:
+      REGISTRY: ${{ vars.ACR_NAME }}.azurecr.io
+      TAG: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Sign in to Azure (OIDC, no stored secret)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - run: az acr login --name "${{ vars.ACR_NAME }}"
+
+      - name: Build and push images
+        run: |
+          docker build -t "$REGISTRY/api:$TAG" src/api
+          docker build -t "$REGISTRY/worker:$TAG" src/worker
+          docker build -t "$REGISTRY/web:$TAG" src/web \
+            --build-arg VITE_API_BASE_URL="${{ vars.API_URL }}" \
+            --build-arg VITE_ENTRA_TENANT_ID="${{ vars.AZURE_TENANT_ID }}" \
+            --build-arg VITE_ENTRA_CLIENT_ID="${{ vars.ENTRA_WEB_CLIENT_ID }}" \
+            --build-arg VITE_API_SCOPE="${{ vars.ENTRA_API_SCOPE }}"
+          for app in api worker web; do docker push "$REGISTRY/$app:$TAG"; done
+
+      - name: Deploy to Container Apps
+        run: |
+          for app in api worker web; do
+            az containerapp update \
+              --name "ca-dip-dev-$app" \
+              --resource-group "${{ vars.RESOURCE_GROUP }}" \
+              --image "$REGISTRY/$app:$TAG" \
+              --output none
+          done
+
+      - name: Check the new revisions
+        run: |
+          for app in api worker web; do
+            state=$(az containerapp show --name "ca-dip-dev-$app" --resource-group "${{ vars.RESOURCE_GROUP }}" \
+              --query "{image: properties.template.containers[0].image, ready: properties.latestReadyRevisionName, latest: properties.latestRevisionName}" -o json)
+            echo "$app: $state"
+            echo "$state" | jq -e --arg tag "$TAG" '(.image | endswith($tag)) and .ready == .latest' > /dev/null
+          done
+          # Scale-to-zero apps take a cold start on the first request.
+          curl --fail --silent --show-error --retry 10 --retry-delay 6 --retry-all-errors "${{ vars.API_URL }}/health"
+          echo
+          curl --fail --silent --show-error --retry 10 --retry-delay 6 --retry-all-errors -o /dev/null "${{ vars.WEB_URL }}"
+          status=$(curl --silent -o /dev/null -w '%{http_code}' "${{ vars.API_URL }}/api/me")
+          echo "/api/me without a token: $status"
+          test "$status" = 401

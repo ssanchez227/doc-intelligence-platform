@@ -34,3 +34,13 @@ output "servicebus_fqdn" {
 output "key_vault_uri" {
   value = azurerm_key_vault.main.vault_uri
 }
+
+output "deploy" {
+  description = "Values the GitHub environment needs (none of them are secrets)."
+  value = {
+    client_id          = azurerm_user_assigned_identity.deploy.client_id
+    container_registry = azurerm_container_registry.main.name
+    resource_group     = azurerm_resource_group.main.name
+    app_names          = { for k, v in azurerm_container_app.app : k => v.name }
+  }
+}

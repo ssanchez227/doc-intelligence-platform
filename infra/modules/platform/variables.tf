@@ -56,3 +56,18 @@ variable "placeholder_image" {
   type        = string
   default     = "mcr.microsoft.com/k8se/quickstart:latest"
 }
+
+variable "github_repository" {
+  description = "owner/name of the GitHub repository whose workflows may deploy here."
+  type        = string
+}
+
+variable "entra_tenant_id" {
+  description = "Tenant that issues the API's access tokens (infra/identity output tenant_id)."
+  type        = string
+}
+
+variable "api_audience" {
+  description = "The API's client ID, which v2 access tokens carry as aud (infra/identity output api_client_id)."
+  type        = string
+}

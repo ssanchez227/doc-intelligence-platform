@@ -41,14 +41,41 @@ public class ApiTests(ApiTests.Factory factory) : IClassFixture<ApiTests.Factory
         Assert.Equal(["group-readers"], me.Groups);
     }
 
+    [Fact]
+    public async Task Cors_allows_the_web_origin()
+    {
+        var response = await Preflight(Factory.WebOrigin);
+
+        Assert.Equal(Factory.WebOrigin, response.Headers.GetValues("Access-Control-Allow-Origin").Single());
+    }
+
+    [Fact]
+    public async Task Cors_ignores_other_origins()
+    {
+        var response = await Preflight("https://elsewhere.example");
+
+        Assert.False(response.Headers.Contains("Access-Control-Allow-Origin"));
+    }
+
+    private Task<HttpResponseMessage> Preflight(string origin)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Options, "/api/me");
+        request.Headers.Add("Origin", origin);
+        request.Headers.Add("Access-Control-Request-Method", "GET");
+        request.Headers.Add("Access-Control-Request-Headers", "authorization");
+        return factory.CreateClient().SendAsync(request);
+    }
+
     private sealed record Me(string? Name, string? ObjectId, string[] Groups);
 
     // Replaces Entra token validation with a header-based test scheme, so the
     // tests check the endpoint rules without a real tenant.
     public sealed class Factory : WebApplicationFactory<Program>
     {
+        public const string WebOrigin = "https://web.example";
+
         protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder) =>
-            builder.ConfigureTestServices(services =>
+            builder.UseSetting("Cors:AllowedOrigins:0", WebOrigin).ConfigureTestServices(services =>
                 services.AddAuthentication(options =>
                     {
                         options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
