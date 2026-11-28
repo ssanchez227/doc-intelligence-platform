@@ -261,6 +261,73 @@ public sealed class DocumentService(DocIntelDb db, IFileStore files, TimeProvide
         return published;
     }
 
+    // UC-06: the old version's content becomes a new draft at the next minor number.
+    // Nothing earlier changes, and the new draft goes through review like any other
+    // (M5). It needs no checkout; others' open checkouts become out of date.
+    public async Task<DocumentDetail> RestoreAsync(CurrentUser user, Guid id, Guid versionId, CancellationToken ct)
+    {
+        var doc = await LoadEditableAsync(user, id, ct);
+        var versions = await db.Versions.Where(v => v.DocumentId == id).ToListAsync(ct);
+        var old = versions.SingleOrDefault(v => v.Id == versionId);
+        if (old is null || !CanSeeVersion(user, old)) throw ContentException.NotFound();
+        var latest = versions.OrderByDescending(v => v.Major).ThenByDescending(v => v.Minor).First();
+        if (old.Id == latest.Id) throw ContentException.Conflict(new { error = $"Version {old.Number} is already the latest." });
+
+        var number = VersionNumbers.NextMinor(versions.Select(v => (v.Major, v.Minor)));
+        var restored = new DocumentVersion
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = id,
+            Major = number.Major,
+            Minor = number.Minor,
+            Status = VersionStatus.Draft,
+            FileName = old.FileName,
+            ContentType = old.ContentType,
+            SizeBytes = old.SizeBytes,
+            Sha256 = old.Sha256,
+            // Same immutable file: a restore copies the reference, not the bytes.
+            BlobPath = old.BlobPath,
+            AuthorOid = user.Oid,
+            AuthorName = user.Name,
+            CreatedAt = clock.GetUtcNow(),
+            Comment = $"Restored from version {old.Number}",
+            SourceVersionId = old.Id,
+        };
+        await CommitNewVersionAsync(user, doc, null, restored, null, Audit.Actions.VersionRestored,
+            new { version = restored.Number, restoredFrom = old.Number, previousLatest = latest.Number }, ct);
+        return await GetDetailAsync(user, id, ct);
+    }
+
+    // UC-08: retiring hides the document from the library (and from search and Q&A
+    // once they exist) and stops changes. Versions and audit trail stay readable,
+    // and an administrator can reverse it. Nothing is deleted.
+    public async Task<DocumentDetail> SetRetiredAsync(CurrentUser user, Guid id, bool retire, string? reason, CancellationToken ct)
+    {
+        if (!user.IsAdministrator) throw ContentException.Forbidden("Only administrators can retire documents.");
+        var doc = await LoadReadableAsync(user, id, ct);
+        if (doc.IsRetired == retire)
+        {
+            throw ContentException.Conflict(new { error = retire ? "The document is already retired." : "The document is not retired." });
+        }
+
+        doc.IsRetired = retire;
+        doc.RetiredAt = retire ? clock.GetUtcNow() : null;
+        doc.RetiredByName = retire ? user.Name : null;
+        doc.ConcurrencyStamp = Guid.NewGuid();
+        db.Record(user, retire ? Audit.Actions.DocumentRetired : Audit.Actions.DocumentUnretired, id, doc.PublishedVersionId,
+            new { reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim() }, clock);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            db.ChangeTracker.Clear();
+            throw ContentException.Conflict(new { error = "The document changed at the same moment. Try again." });
+        }
+        return await GetDetailAsync(user, id, ct);
+    }
+
     // ---- shared steps ----
 
     private async Task CommitNewVersionAsync(CurrentUser user, Document doc, Checkout? checkout, DocumentVersion version,
@@ -293,8 +360,12 @@ public sealed class DocumentService(DocIntelDb db, IFileStore files, TimeProvide
             // Someone else's version landed between our check and our save. The file
             // we stored stays (nothing is deleted) but no version points at it.
             db.ChangeTracker.Clear();
+            if (checkout is null)
+            {
+                throw ContentException.Conflict(new { error = "The document changed at the same moment. Try again." });
+            }
             var newest = await LatestVersionAsync(doc.Id, ct);
-            await RefuseAsync(user, doc.Id, checkout?.BaseVersionId, newest, ct);
+            await RefuseAsync(user, doc.Id, checkout.BaseVersionId, newest, ct);
         }
     }
 
@@ -390,8 +461,8 @@ public sealed class DocumentService(DocIntelDb db, IFileStore files, TimeProvide
     private async Task<Document> LoadEditableAsync(CurrentUser user, Guid id, CancellationToken ct)
     {
         var doc = await LoadReadableAsync(user, id, ct);
-        if (!CanEdit(user, doc)) throw ContentException.Forbidden("Only contributors can change documents.");
         if (doc.IsRetired) throw ContentException.Conflict(new { error = "This document is retired. An administrator can reverse that." });
+        if (!CanEdit(user, doc)) throw ContentException.Forbidden("Only contributors can change documents.");
         return doc;
     }
 

@@ -64,6 +64,16 @@ public static class DocumentEndpoints
             return Results.Stream(file.Content, file.ContentType, file.FileName);
         });
 
+        // UC-06
+        docs.MapPost("/{id:guid}/versions/{versionId:guid}/restore", (Guid id, Guid versionId,
+            CurrentUser user, DocumentService service, CancellationToken ct) => service.RestoreAsync(user, id, versionId, ct));
+
+        // UC-08
+        docs.MapPost("/{id:guid}/retire", (Guid id, ReasonBody? body, CurrentUser user, DocumentService service, CancellationToken ct) =>
+            service.SetRetiredAsync(user, id, retire: true, body?.Reason, ct));
+        docs.MapPost("/{id:guid}/unretire", (Guid id, ReasonBody? body, CurrentUser user, DocumentService service, CancellationToken ct) =>
+            service.SetRetiredAsync(user, id, retire: false, body?.Reason, ct));
+
         // Publishing before M5: Administrators only, and only where configuration
         // turns it on (dev). M5 replaces it with the review's final approval.
         if (app.Configuration.GetValue<bool>("Features:DevPublish"))
@@ -90,6 +100,8 @@ public static class DocumentEndpoints
         public int CategoryId { get; set; }
         public string? Reviewers { get; set; }
     }
+
+    public sealed record ReasonBody(string? Reason);
 
     public sealed class NewVersionForm
     {
