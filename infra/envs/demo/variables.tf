@@ -39,3 +39,8 @@ variable "api_audience" {
   description = "infra/identity output api_client_id."
   type        = string
 }
+
+variable "group_object_ids" {
+  description = "Entra group object IDs by key: terraform output -json group_object_ids in infra/identity."
+  type        = map(string)
+}
