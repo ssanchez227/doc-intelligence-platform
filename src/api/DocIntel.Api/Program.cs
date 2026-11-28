@@ -54,6 +54,7 @@ builder.Services.AddScoped(sp => CurrentUser.From(
     sp.GetRequiredService<IHttpContextAccessor>().HttpContext!.User, sp.GetRequiredService<GroupMap>()));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<DocumentService>();
+builder.Services.AddSingleton<PdfQueue>();
 
 var app = builder.Build();
 
