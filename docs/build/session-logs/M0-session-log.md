@@ -2,7 +2,7 @@
 
 Date range: 2026-11-17 to 2026-11-28
 Branch / PR: one branch and PR per step: #46, #47, #48, #49, #50 (step 6, merged into the step 5 branch, see below), #52, #53, #54, #55, and this closing PR
-Tag: none yet
+Tag: `m0`, on commit 357da30 (the merge of #56)
 Demo clip: none (M0 has no scenarios; the evidence is below)
 
 ## What was built
