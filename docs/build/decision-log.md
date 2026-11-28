@@ -92,6 +92,16 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 - Files go to Blob Storage through the API's managed identity in Azure, and to a local folder for local runs. Accepted formats: pdf, txt, md, csv, html, xml, json, odt, ods, odp, odg, up to 25 MB.
 - UC-07 PDF conversion: plain text and Markdown are rendered with PDFsharp/MigraDoc (MIT), a PDF is linked as-is, and ODF records a "not supported yet" failure against the version. It runs in a background service in the API after publish, and on startup picks up published versions still missing a PDF (the API scales to zero). It moves to the worker once the worker can reach the database (M3). ODF through LibreOffice is left over.
 - Every action writes an audit event in the same transaction as the change, including refused check-ins and opening or downloading a version.
+- Permissions in the database use group keys (readers, contributors, reviewers, administrators, finance, hr), not Entra object IDs; configuration `Groups:<key>` maps each key to its group ID. The IDs are tenant-specific and stay out of the repo and the seed data.
+- Without `Database:Provider` configured the API still starts (health answers, data endpoints fail), so dev keeps deploying until Azure SQL is wired.
+- The owner of a document can always read it, even in a category whose groups they are not in (a contributor checking in to Finance would otherwise lose sight of their own document).
+- Drafts are visible to contributors and administrators only; readers see published and archived versions. A document with no published version does not appear in a reader's library. This is the "version they have no access to" in UC-05 until M2 adds finer permissions.
+- A document or version the caller may not read answers 404, the same as one that does not exist, so nothing is revealed. M2 decides the denied-access experience (UC-16).
+- Checking out again while holding an out-of-date checkout moves it to the latest version; that is how a user starts again after a refused check-in.
+- A restore needs no checkout. It creates the next minor draft referencing the old version's file (same immutable blob, no copy), so other open checkouts become out of date.
+- Retiring is for administrators. A retired document leaves the library (shown with `?retired=true`), keeps its versions, PDF and audit trail readable, and refuses checkouts, check-ins, restores and publishing until it is reversed.
+- Files are always served as downloads (`Content-Disposition: attachment`, `nosniff`) so an uploaded HTML file can never run on the API's origin; the web app must not render HTML, XML or JSON files inline either.
+- UC-07 uses a small built-in PDF writer with the standard PDF fonts (Courier, Helvetica-Bold) instead of PDFsharp/MigraDoc (supersedes that part of the UC-07 line above). PDFsharp 6 on Linux needs font files supplied to it, and the container has none; the standard fonts need no embedding. Limits: Latin-1 only (other characters print as "?"), simple Markdown (headings, lists, code blocks, paragraphs). Each rendition gets a unique blob name, so a retried conversion never collides with a partial one.
 
 ## Open
 
@@ -115,3 +125,4 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 - 2026-11-27: OIDC subject switched to GitHub's immutable form after the first deploy's sign-in was refused.
 - 2026-11-28: M0 closed; reviewed for completeness against the M0 session log. No new decisions.
 - 2026-11-27: M1 decisions logged; the edit lock question closed in favour of optimistic concurrency, and UC-02, UC-03, UC-04 and UC-29 rewritten to match.
+- 2026-11-28: M1 decisions made while building steps 1 to 5 (group keys, owner and draft visibility, 404 for no access, restore, retire, downloads only, built-in PDF writer).
