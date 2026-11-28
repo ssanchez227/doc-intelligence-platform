@@ -25,3 +25,6 @@ crash.log
 # OS and editors
 .DS_Store
 .idea/
+
+# Local API data (SQLite database and files)
+App_Data/

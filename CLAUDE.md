@@ -35,6 +35,7 @@ Installed with winget on Windows (versions as of 2026-11-17): git 2.56.0, .NET S
 Filled in as each part is created (build, test, run, deploy).
 
 - .NET (API and worker, solution `DocIntel.slnx`, .NET 10 LTS): `dotnet build DocIntel.slnx`, `dotnet test DocIntel.slnx`. Run the API with `dotnet run --project src/api/DocIntel.Api`. ASP.NET packages stay on 10.0.x; the newest ones target .NET 11.
+- Database (EF Core): Azure SQL in Azure, SQLite locally and in tests (`App_Data/` under the API, gitignored). Add a migration with `dotnet tool restore` then `dotnet ef migrations add <Name> --project src/api/DocIntel.Api --output-dir Data/Migrations` (always generated for SQL Server). To run the API tests against SQL Server, set `DOCINTEL_TEST_SQLSERVER` to a connection string; CI does this in the "API tests on SQL Server" job.
 - Web (`src/web`, Vite, React, TypeScript, TanStack Query): `npm ci`, `npm test` (Vitest), `npm run build`, `npm run lint` (oxlint), `npm run dev`.
 - Local sign-in: after `infra/identity` is applied and initialised, run `./scripts/dev/write-local-auth-config.ps1` once; it writes the Entra IDs to `src/web/.env.development.local` and the API's user secrets (both outside the repo). Then run the API (`http` profile, port 5299) and `npm run dev` (port 5173), and sign in as a test user from `infra/identity` outputs.
 - Windows Smart App Control may block a freshly built test DLL ("An Application Control policy has blocked this file"); `dotnet test -c Release` gets a different build. Do not turn the protection off.
