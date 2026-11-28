@@ -10,7 +10,7 @@ public sealed record NewDocument(string Title, string? Description, int Category
 
 // The content lifecycle (M1). Every method that changes something records an audit
 // event in the same SaveChanges as the change.
-public sealed class DocumentService(DocIntelDb db, IFileStore files, TimeProvider clock)
+public sealed class DocumentService(DocIntelDb db, IFileStore files, TimeProvider clock, ContentFeatures features)
 {
     // UC-01: a new document at 0.1, as a draft, with its category's default groups.
     public async Task<DocumentDetail> CheckInNewAsync(CurrentUser user, NewDocument input, IFormFile? file, CancellationToken ct)
@@ -63,7 +63,10 @@ public sealed class DocumentService(DocIntelDb db, IFileStore files, TimeProvide
             doc.IsRetired, doc.RetiredAt, doc.RetiredByName,
             published is null ? null : ToDto(published, byId), latest is null ? null : ToDto(latest, byId),
             checkoutDtos, checkoutDtos.SingleOrDefault(c => c.IsMine),
-            CanEdit(user, doc), user.IsAdministrator, doc.Groups.Select(g => g.GroupKey).Order().ToList());
+            CanEdit(user, doc), user.IsAdministrator,
+            // The dev-only publish endpoint applies to the latest version when it is a draft.
+            features.DevPublish && user.IsAdministrator && !doc.IsRetired && latest?.Status == VersionStatus.Draft,
+            doc.Groups.Select(g => g.GroupKey).Order().ToList());
     }
 
     // UC-02: checking out records who, when and from which version. It never blocks.

@@ -19,4 +19,5 @@ RUN npm run build
 # Unprivileged nginx: runs as non-root and listens on 8080.
 FROM nginxinc/nginx-unprivileged:stable-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 8080

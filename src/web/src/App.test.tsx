@@ -1,54 +1,16 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
-
-// A stand-in for MSAL: each test chooses whether a user is signed in.
-const msal = vi.hoisted(() => ({
-  isAuthenticated: false,
-  instance: {
-    loginRedirect: vi.fn(),
-    logoutRedirect: vi.fn(),
-    acquireTokenSilent: vi.fn(),
-    acquireTokenRedirect: vi.fn(),
-  },
-  accounts: [] as { homeAccountId: string }[],
-}))
-
-vi.mock('@azure/msal-react', () => ({
-  useIsAuthenticated: () => msal.isAuthenticated,
-  useMsal: () => ({ instance: msal.instance, accounts: msal.accounts }),
-}))
-
-function renderApp() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
-    <QueryClientProvider client={client}>
-      <App />
-    </QueryClientProvider>,
-  )
-}
-
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status })
-}
-
-function signIn() {
-  msal.isAuthenticated = true
-  msal.accounts = [{ homeAccountId: 'user-1' }]
-  msal.instance.acquireTokenSilent.mockResolvedValue({ accessToken: 'token-1' })
-}
+import { fakeApi, json, me, msal, renderApp, route, signIn, signOut } from './testing'
 
 describe('App', () => {
   beforeEach(() => {
-    msal.isAuthenticated = false
-    msal.accounts = []
+    signOut()
     vi.clearAllMocks()
   })
   afterEach(() => vi.unstubAllGlobals())
 
   it('shows the API status when the API answers', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ status: 'ok' })))
+    fakeApi(route('GET', '/health', () => json({ status: 'ok' })))
 
     renderApp()
 
@@ -56,7 +18,7 @@ describe('App', () => {
   })
 
   it('says the API is unreachable when the call fails', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 503 })))
+    fakeApi(route('GET', '/health', () => new Response('', { status: 503 })))
 
     renderApp()
 
@@ -64,47 +26,40 @@ describe('App', () => {
   })
 
   it('offers sign-in to an anonymous visitor', () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ status: 'ok' })))
+    fakeApi(route('GET', '/health', () => json({ status: 'ok' })))
 
     renderApp()
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    expect(msal.instance.loginRedirect).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ prompt: 'select_account' }),
-    )
+    expect(msal.instance.loginRedirect).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ prompt: 'select_account' }))
   })
 
-  it('calls the protected endpoint with the access token and shows the user', async () => {
+  it('calls the API with the access token and shows the signed-in user', async () => {
     signIn()
-    const fetch = vi.fn((url: string) =>
-      Promise.resolve(
-        url.endsWith('/api/me')
-          ? json({ name: 'Test Reader', objectId: 'oid-1', groups: ['g1', 'g2'] })
-          : json({ status: 'ok' }),
-      ),
-    )
-    vi.stubGlobal('fetch', fetch)
+    const { calls } = fakeApi(me(['readers'], 'Test Reader'), route('GET', /^\/api\/documents/, () => json([])))
 
     renderApp()
 
     expect(await screen.findByText('Test Reader')).toBeInTheDocument()
-    expect(screen.getByText('Groups in your token: 2')).toBeInTheDocument()
-    expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/api\/me$/), {
-      headers: { Authorization: 'Bearer token-1' },
-    })
+    expect(calls[0].init.headers).toEqual({ Authorization: 'Bearer token-1' })
   })
 
   it('says so when the API refuses the signed-in user', async () => {
     signIn()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string) =>
-        Promise.resolve(url.endsWith('/api/me') ? new Response('', { status: 401 }) : json({ status: 'ok' })),
-      ),
-    )
+    fakeApi(route('GET', '/api/me', () => new Response('', { status: 401 })))
 
     renderApp()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('The API refused the request.')
+  })
+
+  it('offers Upload to contributors only', async () => {
+    signIn()
+    fakeApi(me(['readers'], 'Test Reader'), route('GET', /^\/api\/documents/, () => json([])))
+
+    renderApp()
+
+    expect(await screen.findByRole('link', { name: 'Library' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Upload' })).not.toBeInTheDocument()
   })
 })
