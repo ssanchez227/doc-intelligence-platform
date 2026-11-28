@@ -22,7 +22,7 @@ A permission-aware document intelligence platform on Azure: classic document man
 
 ## Current status
 
-M0 Foundation, in progress. Done: repo, starter files (CLAUDE.md, .gitignore, folder layout), handoff docs, local tools (versions in CLAUDE.md; Azure subscription exists), open decisions (see the decision log), GitHub Projects board with one issue per scenario, Terraform applied for the bootstrap and dev in Central US (see `infra/README.md`). Next: test the budget alert, CI/CD with OIDC, Entra, OpenTelemetry.
+M0 Foundation is closed (2026-11-28); see `docs/build/session-logs/M0-session-log.md`. dev runs in Central US: web, API and worker deployed by CI/CD from main through OIDC, Entra sign-in with test users and groups (`infra/identity`), telemetry in Application Insights. Left from M0: the budget alert test (dev budget at $1 until the alert email is seen, so any dev apply needs `-var budget_amount=1`). Next: M1 Content lifecycle.
 
 ## Open decisions
 
@@ -39,4 +39,7 @@ Sign in to Azure (`az login`) and GitHub, create the subscription, approve cost-
 ## Lessons from setup
 
 - `gh pr create` can fail with a GraphQL 403 in some environments; use `gh api repos/{owner}/{repo}/pulls` instead.
+- PowerShell here-strings don't pipe into `git commit -F -` or `gh pr create --body-file -`; write the message to a file and pass its path.
+- Don't stack PRs on each other's branches: when the base PR merges first, the stacked one merges into the old branch, not main.
+- The API scales to zero, so the first call after a quiet spell takes several seconds (cold start).
 - The plan doc's lifecycle diagram caption still says 6 states; there are five (In review, Sent back, Published, Retired, Archived).

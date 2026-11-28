@@ -12,7 +12,7 @@ The single starting page for every build chat. Read this, then the brief for you
 
 | Chat | Scope | Scenarios | Status |
 |---|---|---|---|
-| M0 Foundation | Repo, Terraform, CI/CD, sign-in, board, CLAUDE.md | none (enabler) | In progress (steps 1 to 4 done) |
+| M0 Foundation | Repo, Terraform, CI/CD, sign-in, board, CLAUDE.md | none (enabler) | Done except the budget alert test (2026-11-28), see the M0 session log |
 | M1 Content lifecycle | Check in and out, versions, history, restore, PDF, archive | UC-01 to UC-08 | Not started |
 | M2 Access and reading | Permissions, denied access, reading checkout | UC-15, 16, 17, 19 (UC-18 dropped) | Not started |
 | M3 Ingestion and search | Pipeline, index, keyword search, failures | UC-20, UC-28, index check for UC-15 | Not started |

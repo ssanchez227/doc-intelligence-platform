@@ -100,3 +100,4 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 - 2026-11-24: Entra sign-in decisions logged (`infra/identity`, shared app registrations, groups in tokens, test users).
 - 2026-11-27: CI/CD decisions logged (one workflow, OIDC deploy identity per environment, manual Terraform).
 - 2026-11-27: OIDC subject switched to GitHub's immutable form after the first deploy's sign-in was refused.
+- 2026-11-28: M0 closed; reviewed for completeness against the M0 session log. No new decisions.
