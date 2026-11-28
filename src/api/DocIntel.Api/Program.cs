@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using DocIntel.Api.Auth;
+using DocIntel.Api.Content;
 using DocIntel.Api.Data;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -52,6 +53,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped(sp => CurrentUser.From(
     sp.GetRequiredService<IHttpContextAccessor>().HttpContext!.User, sp.GetRequiredService<GroupMap>()));
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<DocumentService>();
 
 var app = builder.Build();
 
@@ -76,6 +78,8 @@ app.MapGet("/api/me", (ClaimsPrincipal user) => Results.Ok(new
 app.MapGet("/api/categories", async (DocIntelDb db, CancellationToken ct) =>
        await db.Categories.OrderBy(c => c.Name).Select(c => new { c.Id, c.Name }).ToListAsync(ct))
    .RequireAuthorization();
+
+app.MapDocumentEndpoints();
 
 app.Run();
 
