@@ -79,12 +79,25 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 - App settings come from Terraform: the API gets the Entra tenant and audience, the CORS origin and the Service Bus namespace; the worker gets the namespace and queue. The worker scales on queue length (KEDA `azure-servicebus` rule using the worker's identity), since it has no ingress to wake it.
 - The federated credential matches GitHub's immutable subject claim, `repo:<owner>@<owner id>/<repo>@<repo id>:environment:<env>` (superseding the `repo:<owner>/<repo>` form above, which the first deploy was refused with). This repository uses immutable subjects (`actions/oidc/customization/sub`), and the IDs mean a renamed or re-created repository with the same name cannot inherit the trust.
 
+**M1 decisions (2026-11-27)**
+- Checkouts use optimistic concurrency, not an exclusive lock (closes the open question). Checking out records who, when and the starting version, and is shown to others; nobody is blocked. A check-in whose starting version is no longer the latest is refused (409) with who checked in which version and when, and no version is created; the checkout stays open. A unique index on (document, version number) and a row version on the document decide simultaneous check-ins. Chosen over the lock to match the plan doc's versioning lean. UC-02, UC-03 and UC-04 criteria rewritten; UC-29 becomes "clear a stale checkout".
+- Publishing creates a new version row with the next major number that points at the approved draft's file; the draft keeps its number, and the previously published version's status becomes Archived. Content of a version never changes; only its lifecycle status does.
+- Each check-in takes the next minor number after the highest existing version (1.0 then 1.1, 1.2); a restore is a check-in of the old file.
+- Until M5, publishing is a service method covered by tests plus an Administrators-only endpoint enabled only by configuration in dev, so the screens can show published state. M5 calls the same method and the endpoint is removed.
+- M1 permissions are minimal and M2 extends them: a document copies its category's default groups at check-in; reading needs one of those groups or Administrators; changes need Contributors; retiring needs Administrators. Role group object IDs come from configuration. Categories are seeded by migration until UC-30 (M6).
+- The ordered reviewer list is saved at check-in; versions stay Draft until M5 wires the review.
+- Retiring (UC-08) is a reversible flag on the document; the library hides retired documents by default and M3 search must honour it.
+- Azure SQL with EF Core migrations in Azure; SQLite for tests and local runs (no LocalDB or Docker on the workstation). A CI job runs the same tests against a SQL Server service container to catch provider differences.
+- The API applies migrations at startup when a configuration flag is on; its identity gets a database user from a one-time script run by the Entra admin. Revisit before M8.
+- Files go to Blob Storage through the API's managed identity in Azure, and to a local folder for local runs. Accepted formats: pdf, txt, md, csv, html, xml, json, odt, ods, odp, odg, up to 25 MB.
+- UC-07 PDF conversion: plain text and Markdown are rendered with PDFsharp/MigraDoc (MIT), a PDF is linked as-is, and ODF records a "not supported yet" failure against the version. It runs in a background service in the API after publish, and on startup picks up published versions still missing a PDF (the API scales to zero). It moves to the worker once the worker can reach the database (M3). ODF through LibreOffice is left over.
+- Every action writes an audit event in the same transaction as the change, including refused check-ins and opening or downloading a version.
+
 ## Open
 
 | Question | Needed by | Notes |
 |---|---|---|
 | Does the AI Search free tier hold the vector index we need | M3 | Moved from M0 on 2026-11-17; decides whether M3 stays free |
-| Edit lock (UC-02) or optimistic concurrency | M1 | The plan doc's versioning lean says optimistic concurrency instead of locks, but UC-02 requires an exclusive edit lock |
 | Free Trial end date | Before the trial ends | Check it in the portal and upgrade to pay-as-you-go before then |
 | UC-46 details: who approves, does the copy expire, can the recipient be outside the system | M7 | Assumed: owner or designated approver, no stated expiry, undecided |
 | Restart point of a send-back when several reviewers have already approved | M5 | Current answer: continue at the reviewer who sent it back |
@@ -101,3 +114,4 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 - 2026-11-27: CI/CD decisions logged (one workflow, OIDC deploy identity per environment, manual Terraform).
 - 2026-11-27: OIDC subject switched to GitHub's immutable form after the first deploy's sign-in was refused.
 - 2026-11-28: M0 closed; reviewed for completeness against the M0 session log. No new decisions.
+- 2026-11-27: M1 decisions logged; the edit lock question closed in favour of optimistic concurrency, and UC-02, UC-03, UC-04 and UC-29 rewritten to match.

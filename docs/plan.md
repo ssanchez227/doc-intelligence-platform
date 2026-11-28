@@ -27,7 +27,7 @@ Forty-five scenarios in six groups, starting from your list: 16 Must, 17 Should 
 | ID | Actor | Scenario | What must be true afterward | Priority |
 | --- | --- | --- | --- | --- |
 | UC-01 | Contributor | Check in a new document | Version 0.1 assigned as a draft; category and metadata captured; file stored (any non-proprietary format); text extracted and indexed; default permissions applied from the category; the author assigns the reviewers and the review starts automatically | Must |
-| UC-02 | Contributor | Check out a document to edit | Exclusive edit lock held; others can still read the published version; the lock shows its owner and time | Must |
+| UC-02 | Contributor | Check out a document to edit | Checkout recorded with its owner, time and starting version and shown to others; nobody is blocked; a check-in based on an out-of-date version is refused and told who checked in since (optimistic concurrency); others can still read the published version | Must |
 | UC-03 | Contributor | Check in a new version | Next minor version number (such as 0.2) assigned as a draft and the review starts automatically; the published version stays visible until the new one is approved | Must |
 | UC-04 | Contributor | Cancel a checkout | Lock released; no new version created; recorded in the audit trail | Should |
 | UC-05 | Reader | View version history and open an older version | Every version listed with author, date and status; older versions open if the reader has access | Must |
@@ -76,7 +76,7 @@ UC-22, UC-23 and UC-25 are the leak tests for the evaluation harness.
 | --- | --- | --- | --- | --- |
 | UC-27 | Administrator | View the audit trail for a document | Who did what and when is shown: check-ins, versions, approvals, permission changes and reading leases | Must |
 | UC-28 | System | Handle a file that cannot be processed | Marked failed with a reason; the author is notified; retry or replace is possible; other uploads are unaffected | Should |
-| UC-29 | Administrator | Break a stuck edit lock | Lock released with a recorded reason; the owner is notified | Should |
+| UC-29 | Administrator | Clear a stale checkout | Checkout closed with a recorded reason; the owner is notified (was "break a stuck edit lock" until checkouts stopped locking in M1) | Should |
 | UC-30 | Administrator | Manage categories and metadata fields | Each category carries default permissions and a default workflow | Should |
 | UC-31 | Administrator | Define or change a workflow template | Steps and approver groups configurable; not needed if one fixed template is enough | Could |
 
@@ -134,7 +134,7 @@ A new version only becomes Published when its last reviewer approves; at that mo
 
 &#91;embedded content: check out, edit and check in · 2 decisions\]
 
-Checking out takes a lock; checking in or cancelling releases it, so a second person is told who holds the document instead of overwriting their work.
+Checking out records who is editing and from which version; it does not lock. A check-in based on an out-of-date version is refused, so a second person is told who checked in since instead of overwriting their work. (Changed in M1 from an exclusive lock; the live diagram still shows the lock.)
 
 ### Review and approval
 

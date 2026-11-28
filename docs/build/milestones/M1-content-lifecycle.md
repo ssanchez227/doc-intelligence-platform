@@ -18,7 +18,7 @@
 ## Notes
 
 - Versions are immutable. Drafts take minor numbers (0.1, 0.2); a published version takes the next major (1.0).
-- Exclusive edit lock shows its owner and time. Readers keep seeing the published version.
+- Checkouts do not lock (optimistic concurrency, decided 2026-11-27). A checkout shows its owner and time; a check-in based on an out-of-date version is refused. Readers keep seeing the published version.
 - Accepted file formats: any non-proprietary format for now.
 - UC-01 and UC-03 also start the review automatically. That step is wired in M5; until then a checked-in version stays a draft.
 - Archiving is reversible and nothing is permanently deleted.
@@ -31,7 +31,7 @@ Lifecycle diagram, check out and check in flow, data model; wireframes Library, 
 
 ## Done checklist
 
-- [ ] Each scenario above has a passing automated test, including a second user blocked by the lock
+- [ ] Each scenario above has a passing automated test, including a second user's out-of-date check-in refused and told who checked in since
 - [ ] Version numbers follow the minor and major rule, tested
 - [ ] Restore creates a new version and never rewrites history
 - [ ] The React screens for library, detail and upload work end to end in dev

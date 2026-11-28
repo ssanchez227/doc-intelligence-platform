@@ -18,7 +18,7 @@ A permission-aware document intelligence platform on Azure: classic document man
 - Build index, milestone briefs M0 to M8, decision log, templates: `docs/build/`.
 - Live plan doc with diagrams: https://claude.ai/artifact/LGQ3wknML3PsYD77h7YkRk
 - Wireframes (six screens): https://claude.ai/artifact/TkVVMhkyMTnuyYvGQzzsBy
-- Still to draw: permission-change and re-index diagram (before M3); wireframes for permissions admin, audit viewer, failed-ingestion list, break lock.
+- Still to draw: permission-change and re-index diagram (before M3); wireframes for permissions admin, audit viewer, failed-ingestion list, clear checkout.
 
 ## Current status
 
@@ -26,7 +26,7 @@ M0 Foundation is closed (2026-11-28); see `docs/build/session-logs/M0-session-lo
 
 ## Open decisions
 
-See "Open" in `docs/build/decision-log.md`: AI Search free-tier vector capacity, edit lock or optimistic concurrency, Free Trial end date, UC-46 details, send-back restart point.
+See "Open" in `docs/build/decision-log.md`: AI Search free-tier vector capacity, Free Trial end date, UC-46 details, send-back restart point.
 
 ## How to start a session
 
