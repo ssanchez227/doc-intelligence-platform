@@ -88,19 +88,20 @@ public class ApiFactory : WebApplicationFactory<Program>
         return await work(scope.ServiceProvider.GetRequiredService<DocIntelDb>());
     }
 
+    // Cleans up after the host is gone, without touching its (disposed) services.
     protected override void Dispose(bool disposing)
     {
-        if (disposing && UsesSqlServer && Server is not null)
-        {
-            using var scope = Services.CreateScope();
-            scope.ServiceProvider.GetRequiredService<DocIntelDb>().Database.EnsureDeleted();
-        }
         base.Dispose(disposing);
-        if (disposing)
+        if (!disposing) return;
+
+        _keepAlive?.Dispose();
+        if (UsesSqlServer)
         {
-            _keepAlive?.Dispose();
-            if (Directory.Exists(_filesPath)) Directory.Delete(_filesPath, recursive: true);
+            SqlConnection.ClearAllPools();
+            using var db = new DocIntelDb(new DbContextOptionsBuilder<DocIntelDb>().UseSqlServer(_connectionString).Options);
+            db.Database.EnsureDeleted();
         }
+        if (Directory.Exists(_filesPath)) Directory.Delete(_filesPath, recursive: true);
     }
 }
 
