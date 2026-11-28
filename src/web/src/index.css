@@ -1,12 +1,290 @@
+/* Greyscale styling that follows the wireframes; a real visual design comes later. */
 :root {
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
-  color: #222;
-  background: #fff;
+  --ink: #222;
+  --muted: #5f5f5f;
+  --line: #bdbdbd;
+  --line-soft: #d6d6d6;
+  --surface: #fff;
+  --hover: #efefef;
+  --selected: #e6e6e6;
+  --error: #a4161a;
+  --error-bg: #fdecea;
+  --info-bg: #eef4fb;
+  --notice-bg: #f6f6f6;
+  font: 14px/1.45 system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--surface);
 }
 
-main {
+body {
+  margin: 0;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.welcome {
   max-width: 48rem;
   margin: 0 auto;
   padding: 2rem 1rem;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.logo {
+  font-weight: 700;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.nav {
+  width: 200px;
+  padding: 16px;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+.nav a {
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.nav a:hover {
+  background: var(--hover);
+}
+
+.nav a.active {
+  background: var(--selected);
+  font-weight: 600;
+}
+
+.main {
+  flex: 999 1 560px;
+  min-width: 0;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 760px) {
+  .nav {
+    width: 100%;
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .main {
+    padding: 16px;
+  }
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--surface);
+}
+
+.table-wrap {
+  padding: 0;
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: top;
+}
+
+th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid #6b6b6b;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.btn {
+  display: inline-block;
+  padding: 8px 14px;
+  min-height: 36px;
+  border: 1px solid #6b6b6b;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink);
+  text-decoration: underline;
+  font: inherit;
+  cursor: pointer;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.toolbar,
+.actions,
+.title-row,
+.row-actions,
+.inline-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.title-row {
+  gap: 12px;
+}
+
+.row-actions {
+  gap: 12px;
+}
+
+.crumbs {
+  font-size: 12px;
+}
+
+.check {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 640px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field input:not([type='checkbox']),
+.field select,
+.field textarea,
+.inline-form input {
+  padding: 8px 10px;
+  border: 1px solid #8a8a8a;
+  border-radius: 6px;
+  font: inherit;
+  background: var(--surface);
+}
+
+.split {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.grow {
+  flex: 999 1 420px;
+  min-width: 0;
+}
+
+.details {
+  flex: 1 1 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plain {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.error {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.info {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--info-bg);
+}
+
+.notice {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--notice-bg);
+  border: 1px solid var(--line-soft);
 }

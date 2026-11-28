@@ -55,6 +55,7 @@ builder.Services.AddScoped(sp => CurrentUser.From(
     sp.GetRequiredService<IHttpContextAccessor>().HttpContext!.User, sp.GetRequiredService<GroupMap>()));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<DocumentService>();
+builder.Services.AddSingleton(new ContentFeatures(builder.Configuration.GetValue<bool>("Features:DevPublish")));
 builder.Services.AddSingleton<PdfQueue>();
 builder.Services.AddSingleton<PdfConverter>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PdfConverter>());
@@ -71,11 +72,13 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
    .AllowAnonymous();
 
 // Proves sign-in end to end: only a valid Entra token gets past this.
-app.MapGet("/api/me", (ClaimsPrincipal user) => Results.Ok(new
+app.MapGet("/api/me", (ClaimsPrincipal user, CurrentUser current) => Results.Ok(new
    {
        name = user.FindFirstValue("name") ?? user.FindFirstValue("preferred_username"),
        objectId = user.FindFirstValue("oid"),
        groups = user.FindAll("groups").Select(c => c.Value).ToArray(),
+       // What the web app needs to decide which actions to offer; the API checks again.
+       groupKeys = current.GroupKeys.Order().ToArray(),
    }))
    .RequireAuthorization();
 

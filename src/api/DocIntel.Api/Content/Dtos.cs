@@ -10,12 +10,15 @@ public sealed record CheckoutDto(string UserName, DateTimeOffset TakenAt, string
 
 public sealed record CategoryDto(int Id, string Name);
 
+// Switches that change what the content endpoints offer (configuration "Features").
+public sealed record ContentFeatures(bool DevPublish);
+
 public sealed record DocumentDetail(
     Guid Id, string Title, string? Description, CategoryDto Category, string OwnerName, DateTimeOffset CreatedAt,
     bool IsRetired, DateTimeOffset? RetiredAt, string? RetiredByName,
     VersionDto? PublishedVersion, VersionDto? LatestVersion,
     IReadOnlyList<CheckoutDto> Checkouts, CheckoutDto? MyCheckout,
-    bool CanEdit, bool CanAdminister, IReadOnlyList<string> Groups);
+    bool CanEdit, bool CanAdminister, bool CanPublish, IReadOnlyList<string> Groups);
 
 public sealed record DocumentSummary(
     Guid Id, string Title, string Category, string OwnerName, bool IsRetired,

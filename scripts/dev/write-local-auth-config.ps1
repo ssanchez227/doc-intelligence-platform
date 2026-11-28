@@ -6,8 +6,8 @@ Writes the Entra settings for local runs from the infra/identity outputs.
 Reads tenant and client IDs from `terraform output` in infra/identity (run
 `terraform init -backend-config=backend.hcl` there first), then writes:
 - src/web/.env.development.local (gitignored), read by `npm run dev`
-- the API's user secrets (Auth:TenantId, Auth:Audience, Cors:AllowedOrigins:0),
-  which `dotnet run` loads in Development.
+- the API's user secrets (Auth:TenantId, Auth:Audience, Cors:AllowedOrigins:0,
+  and Groups:<key> for each test group), which `dotnet run` loads in Development.
 None of these values are secrets, but they belong to one tenant, so they stay out of the repo.
 #>
 [CmdletBinding()]
@@ -41,4 +41,8 @@ $api = "$root/src/api/DocIntel.Api"
 dotnet user-secrets set 'Auth:TenantId' $out.tenant_id.value --project $api | Out-Null
 dotnet user-secrets set 'Auth:Audience' $out.api_client_id.value --project $api | Out-Null
 dotnet user-secrets set 'Cors:AllowedOrigins:0' $WebOrigin --project $api | Out-Null
-Write-Host 'Set the API user secrets (Auth, Cors).'
+# Group keys used by the API (readers, contributors, ...) -> this tenant's group IDs.
+foreach ($group in $out.group_object_ids.value.PSObject.Properties) {
+    dotnet user-secrets set "Groups:$($group.Name)" $group.Value --project $api | Out-Null
+}
+Write-Host 'Set the API user secrets (Auth, Cors, Groups).'

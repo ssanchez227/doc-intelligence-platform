@@ -81,6 +81,10 @@ public class HistoryAndPublishTests(ApiFactory factory) : IClassFixture<ApiFacto
         var doc = await Contributor.CheckInNewOk();
 
         Assert.Equal(HttpStatusCode.Forbidden, (await Contributor.Publish(doc.Id, doc.LatestVersion!.Id)).StatusCode);
+        Assert.False(doc.CanPublish);
+        Assert.True((await Admin.GetOk(doc.Id)).CanPublish);
+        await Admin.PublishLatestOk(doc.Id);
+        Assert.False((await Admin.GetOk(doc.Id)).CanPublish); // nothing left to publish
     }
 
     // ---- UC-05 View version history and open an older version ----
@@ -207,5 +211,6 @@ public class DevPublishOffTests(DevPublishOffTests.Factory factory) : IClassFixt
         var response = await new ContentClient(factory, TestUsers.Admin).Publish(doc.Id, doc.LatestVersion!.Id);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.False((await new ContentClient(factory, TestUsers.Admin).GetOk(doc.Id)).CanPublish);
     }
 }
