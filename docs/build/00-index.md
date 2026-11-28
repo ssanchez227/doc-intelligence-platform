@@ -18,7 +18,7 @@ The single starting page for every build chat. Read this, then the brief for you
 | M3 Ingestion and search | Pipeline, index, keyword search, failures | UC-20, UC-28, index check for UC-15 | Not started |
 | M4 Questions and citations | Q&A, leak tests, evaluation, feedback | UC-21 to UC-26, UC-41 | Not started |
 | M5 Review and approval | Workflow, send back or advance, publish | UC-09 to UC-14 | Not started |
-| M6 Audit and administration | Audit trail, break lock, categories, workflow templates | UC-27, 29, 30, 31 | Not started |
+| M6 Audit and administration | Audit trail, clear stale checkout, categories, workflow templates | UC-27, 29, 30, 31 | Not started |
 | M7 Modern capabilities | Four batches, see the M7 brief | UC-32 to UC-40, UC-42 to UC-46 | Not started |
 | M8 Hardening and demo | README, diagrams, demo | none (finish) | Not started |
 

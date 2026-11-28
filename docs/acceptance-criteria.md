@@ -21,29 +21,29 @@ Actor: Contributor · Priority: Must · Milestone: M1
 ### UC-02 Check out a document to edit
 Actor: Contributor · Priority: Must · Milestone: M1
 
-- **Given** a document that nobody has checked out for editing
-- **When** a contributor with edit rights checks it out
-- **Then** they hold an exclusive edit lock that shows their name and the time it was taken
+- **Given** a document the contributor may edit
+- **When** they check it out
+- **Then** the checkout records their name, the time it was taken and the version they started from
+- **And** the document shows everyone who currently has it checked out, with their names and times
 - **And** readers can still open the published version
-- **And** a second contributor who tries to check it out is told who holds the lock and since when, and gets no lock
-
-Open decision before M1: exclusive lock (as written here) or optimistic concurrency (see the decision log).
+- **And** a second contributor may also check it out; nobody is blocked (optimistic concurrency, see the decision log, M1 decisions)
 
 ### UC-03 Check in a new version
 Actor: Contributor · Priority: Must · Milestone: M1
 
-- **Given** a contributor holding the edit lock on a document whose latest version is 1.0
+- **Given** a contributor who checked out a document whose latest version is 1.0
 - **When** they check in a changed file
-- **Then** a new draft version 1.1 is created and the lock is released
+- **Then** a new draft version 1.1 is created and their checkout is closed
 - **And** the review starts automatically (UC-09)
 - **And** version 1.0 stays the published, visible version until the new one is approved
+- **And** if someone else checked in a newer version after this contributor checked out, the check-in is refused: no version is created, they are told who checked in which version and when, and their checkout stays open so they can start again from the latest version
 
 ### UC-04 Cancel a checkout
 Actor: Contributor · Priority: Should · Milestone: M1
 
-- **Given** a contributor holding the edit lock on a document
+- **Given** a contributor who has a document checked out
 - **When** they cancel the checkout
-- **Then** the lock is released
+- **Then** their checkout is closed
 - **And** no new version is created
 - **And** the cancellation appears in the audit trail
 
@@ -276,13 +276,15 @@ Actor: Administrator · Priority: Must · Milestone: M6
 
 Note: the plan doc still says "reading leases" here; read it as reading checkouts, since leases were dropped with UC-18.
 
-### UC-29 Break a stuck edit lock
+### UC-29 Clear a stale checkout
 Actor: Administrator · Priority: Should · Milestone: M6
 
-- **Given** a document whose edit lock is held by someone else
-- **When** an administrator breaks the lock with a reason
-- **Then** the lock is released and the reason is recorded
-- **And** the former lock holder is notified
+Rewritten in M1: checkouts no longer lock (optimistic concurrency), so there is no lock to break. A checkout left open still misleads others about who is editing.
+
+- **Given** a document someone else has had checked out for a long time
+- **When** an administrator clears that checkout with a reason
+- **Then** the checkout is closed and the reason is recorded
+- **And** the former holder is notified
 - **And** any unsaved work from the old checkout is not turned into a version
 
 ### UC-30 Manage categories and metadata fields
