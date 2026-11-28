@@ -85,6 +85,8 @@ The subscription is a Free Trial with a spending limit: $200 of credit for 30 da
 - Each check-in takes the next minor number after the highest existing version (1.0 then 1.1, 1.2); a restore is a check-in of the old file.
 - Until M5, publishing is a service method covered by tests plus an Administrators-only endpoint enabled only by configuration in dev, so the screens can show published state. M5 calls the same method and the endpoint is removed.
 - M1 permissions are minimal and M2 extends them: a document copies its category's default groups at check-in; reading needs one of those groups or Administrators; changes need Contributors; retiring needs Administrators. Role group object IDs come from configuration. Categories are seeded by migration until UC-30 (M6).
+- Permissions in the database use group keys (readers, contributors, reviewers, administrators, finance, hr), not Entra object IDs; configuration `Groups:<key>` maps each key to its group ID. The IDs are tenant-specific and stay out of the repo and the seed data, and the same database works for any tenant.
+- Without `Database:Provider` configured the API still starts (health answers, data endpoints fail), so dev keeps deploying until Azure SQL is wired in step 7.
 - The ordered reviewer list is saved at check-in; versions stay Draft until M5 wires the review.
 - Retiring (UC-08) is a reversible flag on the document; the library hides retired documents by default and M3 search must honour it.
 - Azure SQL with EF Core migrations in Azure; SQLite for tests and local runs (no LocalDB or Docker on the workstation). A CI job runs the same tests against a SQL Server service container to catch provider differences.
