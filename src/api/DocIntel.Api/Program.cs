@@ -1,7 +1,10 @@
 using System.Security.Claims;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using DocIntel.Api.Auth;
+using DocIntel.Api.Data;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,7 +41,21 @@ builder.Services.AddOptions<CorsOptions>().Configure<IConfiguration>((options, c
         .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE"));
 });
 
+// Data and files (M1): see Data/DataSetup.cs for the providers per environment.
+builder.Services.AddDocIntelData(builder.Configuration);
+
+// Token group IDs -> group keys (configuration section "Groups"), and the
+// signed-in user as the endpoints see it. Resolve CurrentUser only behind
+// RequireAuthorization.
+builder.Services.AddSingleton(builder.Configuration.GetSection("Groups").Get<GroupMap>() ?? new GroupMap());
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped(sp => CurrentUser.From(
+    sp.GetRequiredService<IHttpContextAccessor>().HttpContext!.User, sp.GetRequiredService<GroupMap>()));
+builder.Services.AddSingleton(TimeProvider.System);
+
 var app = builder.Build();
+
+await app.PrepareDatabaseAsync();
 
 app.UseCors();
 app.UseAuthentication();
@@ -54,6 +71,10 @@ app.MapGet("/api/me", (ClaimsPrincipal user) => Results.Ok(new
        objectId = user.FindFirstValue("oid"),
        groups = user.FindAll("groups").Select(c => c.Value).ToArray(),
    }))
+   .RequireAuthorization();
+
+app.MapGet("/api/categories", async (DocIntelDb db, CancellationToken ct) =>
+       await db.Categories.OrderBy(c => c.Name).Select(c => new { c.Id, c.Name }).ToListAsync(ct))
    .RequireAuthorization();
 
 app.Run();
