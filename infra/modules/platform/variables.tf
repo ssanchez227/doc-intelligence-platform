@@ -71,3 +71,15 @@ variable "api_audience" {
   description = "The API's client ID, which v2 access tokens carry as aud (infra/identity output api_client_id)."
   type        = string
 }
+
+variable "group_object_ids" {
+  description = "Entra group object IDs by group key (readers, contributors, reviewers, administrators, finance, hr): infra/identity output group_object_ids. The API maps token groups to keys with them."
+  type        = map(string)
+  default     = {}
+}
+
+variable "dev_publish" {
+  description = "Turns on the Administrators-only publish endpoint that stands in for the review until M5."
+  type        = bool
+  default     = false
+}

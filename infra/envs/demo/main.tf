@@ -59,4 +59,6 @@ module "platform" {
   github_repository     = var.github_repository
   entra_tenant_id       = var.entra_tenant_id
   api_audience          = var.api_audience
+  group_object_ids      = var.group_object_ids
+  dev_publish           = false
 }

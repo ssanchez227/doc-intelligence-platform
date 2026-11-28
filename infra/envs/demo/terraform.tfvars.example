@@ -12,3 +12,13 @@ budget_contact_emails = ["you@example.com"]
 # From infra/identity: terraform output tenant_id / api_client_id
 entra_tenant_id = "00000000-0000-0000-0000-000000000000"
 api_audience    = "00000000-0000-0000-0000-000000000000"
+
+# terraform output -json group_object_ids in infra/identity
+group_object_ids = {
+  readers        = "00000000-0000-0000-0000-000000000000"
+  contributors   = "00000000-0000-0000-0000-000000000000"
+  reviewers      = "00000000-0000-0000-0000-000000000000"
+  administrators = "00000000-0000-0000-0000-000000000000"
+  finance        = "00000000-0000-0000-0000-000000000000"
+  hr             = "00000000-0000-0000-0000-000000000000"
+}

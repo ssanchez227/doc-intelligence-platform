@@ -270,12 +270,39 @@ locals {
   # Settings per app, on top of the Application Insights and identity ones every app gets.
   app_settings = {
     web = {}
-    api = {
+    api = merge({
       Auth__TenantId                      = var.entra_tenant_id
       Auth__Audience                      = var.api_audience
       Cors__AllowedOrigins__0             = local.web_url
       ServiceBus__FullyQualifiedNamespace = local.servicebus_fqdn
-    }
+
+      # M1: Azure SQL through the API's managed identity (its database user comes
+      # from scripts/dev/grant-api-database-access.sql). The API applies the EF
+      # migrations at startup. A paused serverless database takes up to a minute
+      # to resume, hence the long connect timeout.
+      Database__Provider         = "SqlServer"
+      Database__MigrateOnStartup = "true"
+      ConnectionStrings__DocIntel = join(";", [
+        "Server=tcp:${azurerm_mssql_server.main.fully_qualified_domain_name},1433",
+        "Database=${azapi_resource.sql_database.name}",
+        "Authentication=Active Directory Managed Identity",
+        "User Id=${azurerm_user_assigned_identity.app["api"].client_id}",
+        "Encrypt=True",
+        "Connect Timeout=90",
+      ])
+
+      # Document files in Blob Storage, also through the managed identity.
+      Storage__Provider                = "Blob"
+      Storage__BlobServiceUri          = azurerm_storage_account.main.primary_blob_endpoint
+      Storage__Container               = azurerm_storage_container.documents.name
+      Storage__ManagedIdentityClientId = azurerm_user_assigned_identity.app["api"].client_id
+
+      # Publishing without a review, until M5 (decision log, M1 decisions).
+      Features__DevPublish = tostring(var.dev_publish)
+      },
+      # Group keys the API stores -> this tenant's Entra group IDs.
+      { for key, id in var.group_object_ids : "Groups__${key}" => id },
+    )
     worker = {
       ServiceBus__FullyQualifiedNamespace = local.servicebus_fqdn
       ServiceBus__QueueName               = azurerm_servicebus_queue.ingestion.name
