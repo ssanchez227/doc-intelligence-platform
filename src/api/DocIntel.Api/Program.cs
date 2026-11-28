@@ -3,6 +3,7 @@ using Azure.Monitor.OpenTelemetry.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using DocIntel.Api.Auth;
 using DocIntel.Api.Content;
+using DocIntel.Api.Content.Pdf;
 using DocIntel.Api.Data;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +56,8 @@ builder.Services.AddScoped(sp => CurrentUser.From(
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<DocumentService>();
 builder.Services.AddSingleton<PdfQueue>();
+builder.Services.AddSingleton<PdfConverter>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<PdfConverter>());
 
 var app = builder.Build();
 
