@@ -89,6 +89,17 @@ public sealed class ContentClient(ApiFactory factory, TestUser user)
         return await PublishOk(id, latest.Id);
     }
 
+    public Task<HttpResponseMessage> Restore(Guid id, Guid versionId) =>
+        _http.PostAsync($"/api/documents/{id}/versions/{versionId}/restore", null);
+    public async Task<DocumentDetail> RestoreOk(Guid id, Guid versionId) => await Read<DocumentDetail>(await Restore(id, versionId));
+
+    public Task<HttpResponseMessage> Retire(Guid id, string? reason = null) =>
+        _http.PostAsJsonAsync($"/api/documents/{id}/retire", new { reason });
+    public async Task<DocumentDetail> RetireOk(Guid id, string? reason = null) => await Read<DocumentDetail>(await Retire(id, reason));
+
+    public Task<HttpResponseMessage> Unretire(Guid id) => _http.PostAsJsonAsync($"/api/documents/{id}/unretire", new { });
+    public async Task<DocumentDetail> UnretireOk(Guid id) => await Read<DocumentDetail>(await Unretire(id));
+
     public Task<HttpResponseMessage> GetPath(string path) => _http.GetAsync(path);
     public Task<HttpResponseMessage> PostPath(string path, HttpContent? body = null) => _http.PostAsync(path, body);
 
