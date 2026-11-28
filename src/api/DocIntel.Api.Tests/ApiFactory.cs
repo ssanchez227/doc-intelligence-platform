@@ -50,6 +50,9 @@ public class ApiFactory : WebApplicationFactory<Program>
 
     public bool UsesSqlServer => _keepAlive is null;
 
+    // The dev-only publish endpoint (on in tests unless a subclass turns it off).
+    protected virtual bool DevPublish => true;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder
@@ -58,7 +61,8 @@ public class ApiFactory : WebApplicationFactory<Program>
             .UseSetting("Database:MigrateOnStartup", "true")
             .UseSetting("ConnectionStrings:DocIntel", _connectionString)
             .UseSetting("Storage:Provider", "Local")
-            .UseSetting("Storage:LocalPath", _filesPath);
+            .UseSetting("Storage:LocalPath", _filesPath)
+            .UseSetting("Features:DevPublish", DevPublish ? "true" : "false");
 
         foreach (var key in TestUsers.AllGroupKeys)
         {

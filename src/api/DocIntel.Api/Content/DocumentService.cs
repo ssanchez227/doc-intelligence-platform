@@ -143,6 +143,124 @@ public sealed class DocumentService(DocIntelDb db, IFileStore files, TimeProvide
         return await GetDetailAsync(user, id, ct);
     }
 
+    // The library: documents the caller may read. Retired ones only when asked for.
+    public async Task<IReadOnlyList<DocumentSummary>> ListAsync(CurrentUser user, bool retired, CancellationToken ct)
+    {
+        var keys = user.GroupKeys.ToList();
+        var docs = await db.Documents
+            .Where(d => d.IsRetired == retired)
+            .Where(d => user.IsAdministrator || d.OwnerOid == user.Oid || d.Groups.Any(g => keys.Contains(g.GroupKey)))
+            .Select(d => new { d.Id, d.Title, Category = d.Category!.Name, d.OwnerName, d.IsRetired, d.PublishedVersionId })
+            .ToListAsync(ct);
+        var ids = docs.Select(d => d.Id).ToList();
+        var versions = (await db.Versions.Where(v => ids.Contains(v.DocumentId)).ToListAsync(ct))
+            .Where(v => CanSeeVersion(user, v)).ToLookup(v => v.DocumentId);
+        var checkouts = (await db.Checkouts.Where(c => ids.Contains(c.DocumentId) && c.ClosedAt == null)
+            .Select(c => c.DocumentId).ToListAsync(ct)).CountBy(x => x).ToDictionary();
+
+        return docs.Select(d =>
+            {
+                var mine = versions[d.Id].OrderByDescending(v => v.Major).ThenByDescending(v => v.Minor).ToList();
+                var latest = mine.FirstOrDefault();
+                var published = mine.FirstOrDefault(v => v.Id == d.PublishedVersionId);
+                return new DocumentSummary(d.Id, d.Title, d.Category, d.OwnerName, d.IsRetired,
+                    published?.Number, latest?.Number, latest?.Status.ToString(),
+                    mine.Count > 0 ? mine.Max(v => v.CreatedAt) : default, checkouts.GetValueOrDefault(d.Id));
+            })
+            .Where(s => s.LatestNumber is not null)
+            .OrderByDescending(s => s.UpdatedAt)
+            .ToList();
+    }
+
+    // UC-05: every version the caller may open, newest first.
+    public async Task<IReadOnlyList<VersionDto>> HistoryAsync(CurrentUser user, Guid id, CancellationToken ct)
+    {
+        await LoadReadableAsync(user, id, ct);
+        var versions = await db.Versions.Where(v => v.DocumentId == id).ToListAsync(ct);
+        var byId = versions.ToDictionary(v => v.Id);
+        return versions.Where(v => CanSeeVersion(user, v))
+            .OrderByDescending(v => v.Major).ThenByDescending(v => v.Minor)
+            .Select(v => ToDto(v, byId)).ToList();
+    }
+
+    public sealed record OpenedFile(Stream Content, string ContentType, string FileName);
+
+    // UC-05: open one version's file (or its PDF, UC-07). A version the caller may not
+    // see answers exactly like one that does not exist. Opening is audited.
+    public async Task<OpenedFile> OpenVersionAsync(CurrentUser user, Guid id, Guid versionId, bool pdf, CancellationToken ct)
+    {
+        await LoadReadableAsync(user, id, ct);
+        var version = await db.Versions.SingleOrDefaultAsync(v => v.Id == versionId && v.DocumentId == id, ct);
+        if (version is null || !CanSeeVersion(user, version)) throw ContentException.NotFound();
+        if (pdf && version.PdfStatus != PdfStatus.Done)
+        {
+            throw ContentException.Conflict(new { error = "This version has no PDF.", pdf = version.PdfStatus.ToString() });
+        }
+
+        var path = pdf ? version.PdfBlobPath! : version.BlobPath;
+        var stream = await files.OpenReadAsync(path, ct);
+        db.Record(user, Audit.Actions.VersionOpened, id, version.Id, new { version = version.Number, pdf }, clock);
+        await db.SaveChangesAsync(ct);
+        var name = pdf ? Path.ChangeExtension(version.FileName, ".pdf") : version.FileName;
+        return new OpenedFile(stream, pdf ? "application/pdf" : version.ContentType, name);
+    }
+
+    // Publishing (wired to the review in M5; until then a dev-only endpoint calls it).
+    // The latest draft becomes a new version with the next major number, pointing at
+    // the same file. The draft keeps its number; the previous published version
+    // becomes Archived.
+    public async Task<DocumentVersion> PublishAsync(CurrentUser actor, Guid id, Guid draftId, CancellationToken ct)
+    {
+        var doc = await db.Documents.SingleOrDefaultAsync(d => d.Id == id, ct) ?? throw ContentException.NotFound();
+        if (doc.IsRetired) throw ContentException.Conflict(new { error = "This document is retired." });
+        var versions = await db.Versions.Where(v => v.DocumentId == id).ToListAsync(ct);
+        var draft = versions.SingleOrDefault(v => v.Id == draftId) ?? throw ContentException.NotFound();
+        var latest = versions.OrderByDescending(v => v.Major).ThenByDescending(v => v.Minor).First();
+        if (draft.Status != VersionStatus.Draft || draft.Id != latest.Id)
+        {
+            throw ContentException.Conflict(new { error = $"Only the latest draft can be published; the latest version is {latest.Number}." });
+        }
+
+        var number = VersionNumbers.NextMajor(versions.Select(v => (v.Major, v.Minor)));
+        var published = new DocumentVersion
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = id,
+            Major = number.Major,
+            Minor = number.Minor,
+            Status = VersionStatus.Published,
+            FileName = draft.FileName,
+            ContentType = draft.ContentType,
+            SizeBytes = draft.SizeBytes,
+            Sha256 = draft.Sha256,
+            BlobPath = draft.BlobPath,
+            AuthorOid = draft.AuthorOid,
+            AuthorName = draft.AuthorName,
+            CreatedAt = clock.GetUtcNow(),
+            Comment = draft.Comment,
+            SourceVersionId = draft.Id,
+            PdfStatus = PdfStatus.Pending,
+        };
+        var previous = versions.SingleOrDefault(v => v.Id == doc.PublishedVersionId);
+        if (previous is not null) previous.Status = VersionStatus.Archived;
+        db.Versions.Add(published);
+        doc.PublishedVersionId = published.Id;
+        doc.ConcurrencyStamp = Guid.NewGuid();
+        db.Record(actor, Audit.Actions.VersionPublished, id, published.Id,
+            new { version = published.Number, from = draft.Number, archived = previous?.Number }, clock);
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            db.ChangeTracker.Clear();
+            throw ContentException.Conflict(new { error = "The document changed while publishing. Try again." });
+        }
+        return published;
+    }
+
     // ---- shared steps ----
 
     private async Task CommitNewVersionAsync(CurrentUser user, Document doc, Checkout? checkout, DocumentVersion version,

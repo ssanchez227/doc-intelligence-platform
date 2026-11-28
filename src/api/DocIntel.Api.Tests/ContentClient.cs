@@ -61,6 +61,34 @@ public sealed class ContentClient(ApiFactory factory, TestUser user)
     public async Task<DocumentDetail> CheckInOk(Guid id, string content = "# Changed", string? comment = null) =>
         await Read<DocumentDetail>(await CheckIn(id, content, comment: comment));
 
+    public async Task<DocumentSummary[]> ListOk(bool retired = false) =>
+        await Read<DocumentSummary[]>(await _http.GetAsync($"/api/documents?retired={retired.ToString().ToLowerInvariant()}"));
+
+    public Task<HttpResponseMessage> History(Guid id) => _http.GetAsync($"/api/documents/{id}/versions");
+    public async Task<VersionDto[]> HistoryOk(Guid id) => await Read<VersionDto[]>(await History(id));
+
+    public Task<HttpResponseMessage> Open(Guid id, Guid versionId, bool pdf = false) =>
+        _http.GetAsync($"/api/documents/{id}/versions/{versionId}/content{(pdf ? "?pdf=true" : "")}");
+
+    public async Task<string> OpenTextOk(Guid id, Guid versionId)
+    {
+        var response = await Open(id, versionId);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.IsSuccessStatusCode, $"{(int)response.StatusCode}: {body}");
+        return body;
+    }
+
+    public Task<HttpResponseMessage> Publish(Guid id, Guid versionId) =>
+        _http.PostAsync($"/api/documents/{id}/versions/{versionId}/publish", null);
+    public async Task<DocumentDetail> PublishOk(Guid id, Guid versionId) => await Read<DocumentDetail>(await Publish(id, versionId));
+
+    // Publishes the latest draft (as an administrator would until M5).
+    public async Task<DocumentDetail> PublishLatestOk(Guid id)
+    {
+        var latest = (await GetOk(id)).LatestVersion!;
+        return await PublishOk(id, latest.Id);
+    }
+
     public Task<HttpResponseMessage> GetPath(string path) => _http.GetAsync(path);
     public Task<HttpResponseMessage> PostPath(string path, HttpContent? body = null) => _http.PostAsync(path, body);
 
